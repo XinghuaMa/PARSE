@@ -21,16 +21,15 @@ Folders that aren't in the repository can be created by running the correspondin
     │   │  ...  ├── dcm.npy
     │   │       └── label.npy
     │   ├── eval                      <- Preprocessed testing dataset folder
-    │   │   ├── PA000013              <- testing data (numpy array)
-    │   │  ...  ├── dcm.npy
-    │   │       └── label.npy
-    │   ├── dcm_volume_array.npy      <- Set of training data images
-    │   └── label_volume_array.npy    <- Set of training data labels
+    │   │   ├── PA000013/dcm.npy      <- testing data (numpy array)
+    │   │  ... 
+    │   ├── dcm_volume_array.npy      <- Image array of training dataset
+    │   └── label_volume_array.npy    <- label array of training dataset
     ├── submit
-    │   ├── npy                       <- Prediction result numpy array folder
+    │   ├── npy                       <- Prediction result folder (.npy)
     │   │   ├── PA000013.npy
     │   │  ...
-    │   └── nii                       <- Submission result folder
+    │   └── nii                       <- Submission result folder (.nii.gz)
     │       ├── PA000013.nii.gz
     │      ...
     ├── exp
@@ -50,14 +49,13 @@ Usage
 The path of raw data (`root_raw_train_data` and `root_raw_eval_data`) needs to be set in [`config.py`](config.py), where raw data files need to be organized in the following way:
 
     └── parse2022
-        ├── train                     <- root raw training data
+        ├── train                     <- root_raw_train_data is set to the path
         │   ├── PA000005
         │  ...  ├── image/PA000005.nii.gz
         │       └── label/PA000005.nii.gz
-        └── validate                  <- root raw testing data
+        └── validate                  <- root_raw_eval_data is set to the path
             ├── PA000013
-           ...  ├── image/PA000005.nii.gz
-                └── label/PA000005.nii.gz
+           ...  └── image/PA000005.nii.gz
 
 
 `dataset_preprocessing()` in [`dataset.py`](dataset.py) reads and preprocesses raw data for model training and testing.

@@ -4,13 +4,16 @@ import feature as feat
 from tqdm import tqdm
 from model import UNet3D
 import torch
+import dataset
+from torch.utils.data import DataLoader
+from datetime import datetime
 import nibabel as nib
 import os
 import SimpleITK as sitk
 import evalu
 
 
-def eval_data_maker(lung_mask=False):
+def eval_data_maker(label_mask=False, lung_mask=False):
 
     root_eval_data = opt.root_raw_eval_data
     root_eval_volume = opt.root_eval_volume
@@ -22,18 +25,22 @@ def eval_data_maker(lung_mask=False):
     for i in tqdm(range(len(fileList))):
         root_data = f'{root_eval_data}{fileList[i]}/'
         root_dcm = f'{root_data}image/{fileList[i]}.nii.gz'
-        root_label = f'{root_data}label/{fileList[i]}.nii.gz'
 
         dcm_img = np.swapaxes(np.array(nib.load(root_dcm).dataobj), 0, 2)
-        label_img = np.swapaxes(np.array(nib.load(root_label).dataobj), 0, 2)
-        label_img = label_img.astype(np.uint8)
         dcm_img = feat.add_window(dcm_img)
 
         root_save = f'{root_eval_volume}{fileList[i]}/'
         if not os.path.exists(root_save):
             os.makedirs(root_save)
         np.save(f'{root_save}/dcm.npy', dcm_img)
-        np.save(f'{root_save}/label.npy', label_img)
+
+        # feat.info_data(dcm_img)
+        # feat.info_data(label_img)
+        if label_mask:
+            root_label = f'{root_data}label/{fileList[i]}.nii.gz'
+            label_img = np.swapaxes(np.array(nib.load(root_label).dataobj), 0, 2)
+            label_img = label_img.astype(np.uint8)
+            np.save(f'{root_save}/label.npy', label_img)
 
         if lung_mask:
             root_lung = f'{root_data}lung/{fileList[i]}.nii.gz'
@@ -56,9 +63,11 @@ def pred_folder_creation():
         os.makedirs(f'{root_submit_file}nii/')
 
 
-def eval_data(eval_model, save_pred=False, root_save=None):
+def eval_data(eval_model, save_pred=False, root_save=None, dice_calcu=False):
 
-    dice_counter = feat.Counter()
+    dice_counter=None
+    if dice_calcu:
+        dice_counter = feat.Counter()
 
     root_eval = opt.root_eval_volume
     fileList = os.listdir(root_eval)
@@ -66,18 +75,22 @@ def eval_data(eval_model, save_pred=False, root_save=None):
     for i in tqdm(range(len(fileList))):
 
         root_data = f'{root_eval}{fileList[i]}/'
-        root_dcm, root_label = f'{root_data}dcm.npy', f'{root_data}label.npy'
-        array_dcm, array_label = np.load(root_dcm), np.load(root_label)
+        root_dcm = f'{root_data}dcm.npy'
+        array_dcm = np.load(root_dcm)
         array_pred = pred_volume(eval_model, array_dcm)
-        
-        dice = evalu.dice_coefficient(array_pred, array_label)
-        dice_counter.updata(dice)
+        # print(array_pred.shape, array_label.shape)
+        if dice_calcu:
+            root_label = f'{root_data}label.npy'
+            array_label = np.load(root_label)
+            dice = evalu.dice_coefficient(array_pred, array_label)
+            dice_counter.updata(dice)
 
         if save_pred:
             np.save(f'{root_save}{fileList[i]}.npy', array_pred)
 
-    return round(dice_counter.avg * 100, 1)
-
+    if dice_calcu:
+        print(f"prediction averaged dice:", round(dice_counter.avg * 100, 1))
+    return
 
 
 def pred_volume(pred_model, dcm_array):
@@ -157,7 +170,7 @@ def submit_pred():
 
     pred_folder_creation()
     print('folder creation finish!')
-    eval_data_maker(lung_mask=False)
+    eval_data_maker()
 
     root_submit_file = opt.root_submit_file
     Unet = UNet3D(1, 1)
@@ -167,9 +180,8 @@ def submit_pred():
     pred_numpy_array = f'{root_submit_file}npy/'
     pred_nii_array = f'{root_submit_file}nii/'
 
-    dice = eval_data(Unet, save_pred=True, root_save=pred_numpy_array)
+    eval_data(Unet, save_pred=True, root_save=pred_numpy_array)
     print('volume prediction finish!')
-    print(f"prediction averaged dice:", dice)
     numpy2niigz(pred_numpy_array, pred_nii_array)
     print('niigz changing finish!')
 
