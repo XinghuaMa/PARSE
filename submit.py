@@ -93,6 +93,7 @@ def eval_data(eval_model, save_pred=False, root_save=None, dice_calcu=False):
     return
 
 
+
 def pred_volume(pred_model, dcm_array):
 
     dcm_volume = dcm_array.astype(np.float32)
@@ -166,11 +167,11 @@ def numpy2niigz(root_numpy, root_niigz):
         sitk.WriteImage(out, f'{root_niigz}/{file_name}.nii.gz')
 
 
-def submit_pred():
+def submit_pred(dice_calcu=False):
 
     pred_folder_creation()
     print('folder creation finish!')
-    eval_data_maker()
+    eval_data_maker(label_mask=dice_calcu)
 
     root_submit_file = opt.root_submit_file
     Unet = UNet3D(1, 1)
@@ -180,7 +181,7 @@ def submit_pred():
     pred_numpy_array = f'{root_submit_file}npy/'
     pred_nii_array = f'{root_submit_file}nii/'
 
-    eval_data(Unet, save_pred=True, root_save=pred_numpy_array)
+    eval_data(Unet, save_pred=True, root_save=pred_numpy_array, dice_calcu=dice_calcu)
     print('volume prediction finish!')
     numpy2niigz(pred_numpy_array, pred_nii_array)
     print('niigz changing finish!')
