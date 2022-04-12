@@ -67,4 +67,5 @@ After `root_model_param` in [`config.py`](config.py) setting, `submit_pred()` in
 
 Acknowledgements
 ------------
+- PARSE Challenge: https://parse2022.grand-challenge.org
 - Pytorch-3dunet: https://github.com/wolny/pytorch-3dunet
